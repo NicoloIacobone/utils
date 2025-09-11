@@ -9,6 +9,9 @@
 # Step 0: pulizia moduli
 module purge
 
+# Step 0.1: clonazione repo
+git clone https://github.com/NicoloIacobone/SpaTrackerV2.git
+
 # Step 1: carico stack e python
 module load stack/2024-06 python/3.11
 

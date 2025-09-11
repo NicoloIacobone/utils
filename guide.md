@@ -70,7 +70,7 @@ python tapip3d_viz.py nome/file --> visualizzare risultato
 ### FUNZIONANTE (senza --system-site-packages)
 0. module purge
 0. git clone https://github.com/NicoloIacobone/SpaTrackerV2.git
-0. git submodule update --init --recursive
+<!-- 0. git submodule update --init --recursive -->
 1. module load stack/2024-06 python/3.11
 2. python -m venv myenv
 3. source myenv/bin/activate

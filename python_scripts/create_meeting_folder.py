@@ -87,6 +87,6 @@ depth_pattern_path = os.path.join(kubric_video_dir, "depth_00000.tiff")
 if os.path.isfile(depth_pattern_path):
     depth_gif_output_path = os.path.join(other_outputs_dir, "depth.gif")
     try:
-        os.system(f"ffmpeg -y -i {os.path.join(kubric_video_dir, 'depth_%05d.tiff')} -vf 'fps=10,scale=320:-1:flags=lanczos' -c:v gif {depth_gif_output_path}")
+        os.system(f"ffmpeg -y -i {os.path.join(kubric_video_dir, 'depth_%05d.tiff')} -vf 'fps=10,scale=320:-1:flags=lanczos,format=gray' {depth_gif_output_path}")
     except Exception as e:
         print(f"Failed to create depth gif in other_outputs: {e}")

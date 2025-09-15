@@ -59,12 +59,28 @@ def calculate_tracking_consistency(video_path, spatrack2_path):
     print(f"DEBUG: scale_x={scale_x}, scale_y={scale_y}")
 
     # --- 3. INITIALIZE COUNTERS ---
-    
     total_predicted_points = 0
-    consistent_points = 0
+    consistent_score = 0.0
+
+    # --- NEW: Assign IDs to predicted points in first frame ---
+    pred_point_ids = np.zeros(num_points, dtype=int)
+    # Use the first GT mask for ID assignment
+    for k in range(num_points):
+        x_pred, y_pred, confidence = pred_tracks_2d[0, k, :]
+        # Rescale coordinates
+        x_mapped = int(x_pred * scale_x)
+        y_mapped = int(y_pred * scale_y)
+        # Check bounds
+        if 0 <= x_mapped < W_orig and 0 <= y_mapped < H_orig:
+            if first_gt_mask.ndim == 3:
+                # RGB mask: use first channel as ID (or custom logic)
+                pred_point_ids[k] = first_gt_mask[y_mapped, x_mapped, 0]
+            else:
+                pred_point_ids[k] = first_gt_mask[y_mapped, x_mapped]
+        else:
+            pred_point_ids[k] = 0  # background or out of bounds
 
     # --- 4. ITERATE AND CALCULATE CONSISTENCY ---
-    
     for i in range(num_pred_frames):
         # a. Find the corresponding GT frame
         gt_frame_index = i * stride
@@ -72,7 +88,6 @@ def calculate_tracking_consistency(video_path, spatrack2_path):
         if gt_frame_index >= len(gt_mask_files):
             print(f"Warning: GT index {gt_frame_index} out of bounds. Breaking loop.")
             break
-            
         gt_mask_path = gt_mask_files[gt_frame_index]
         gt_instance_mask = np.array(Image.open(gt_mask_path))
         print(f"DEBUG: Loaded GT mask {gt_mask_path}, shape: {gt_instance_mask.shape}")
@@ -97,26 +112,45 @@ def calculate_tracking_consistency(video_path, spatrack2_path):
             if not (0 <= x_pred < W_scaled and 0 <= y_pred < H_scaled):
                 print(f"DEBUG: Point {k} is off-screen (predicted coords: {x_pred}, {y_pred}), skipping.")
                 continue # Point is off-screen, so not consistent
-                
+
             # iii. Rescale coordinates
             x_mapped = int(x_pred * scale_x)
             y_mapped = int(y_pred * scale_y)
             print(f"DEBUG: Point {k} mapped to GT coords: ({x_mapped}, {y_mapped})")
-            
+
             # Ensure mapped coordinates are still within bounds after rounding
             if not (0 <= x_mapped < W_orig and 0 <= y_mapped < H_orig):
                 print(f"DEBUG: Mapped point {k} out of GT bounds, skipping.")
                 continue
 
-            # iv. Check consistency
+            # iv. Check consistency: foreground and ID match
+            found_score = 0.0
             if foreground_mask[y_mapped, x_mapped]:
-                consistent_points += 1
-                print(f"DEBUG: Point {k} is consistent (foreground).")
+                # Get GT ID at this location
+                if gt_instance_mask.ndim == 3:
+                    gt_id = gt_instance_mask[y_mapped, x_mapped, 0]
+                else:
+                    gt_id = gt_instance_mask[y_mapped, x_mapped]
+                if gt_id == pred_point_ids[k] and gt_id != 0:
+                    found_score = 1.0
+                    print(f"DEBUG: Point {k} is consistent (foreground, ID match: {gt_id}).")
+                else:
+                    print(f"DEBUG: Point {k} is foreground but ID mismatch (GT: {gt_id}, Pred: {pred_point_ids[k]}).")
+                    # Show GT mask and overlay predicted point when foreground but ID mismatch
+                    # plt.figure(figsize=(6, 6))
+                    # if gt_instance_mask.ndim == 3:
+                    #     plt.imshow(gt_instance_mask)
+                    # else:
+                    #     plt.imshow(gt_instance_mask, cmap='gray')
+                    # plt.scatter([x_mapped], [y_mapped], c='red', s=40, marker='o')
+                    # plt.title(f"GT mask with predicted point (frame {i}, point {k}) - ID mismatch")
+                    # plt.axis('off')
+                    # plt.show()
             else:
                 print(f"DEBUG: Point {k} is NOT consistent (background).")
                 # print(f"DEBUG: GT mask value at ({y_mapped}, {x_mapped}): {gt_instance_mask[y_mapped, x_mapped]}")
                 # print(f"DEBUG: loaded mask path: {gt_mask_path}")
-                # Show GT mask and overlay predicted point only when NOT consistent
+                # # Show GT mask and overlay predicted point only when NOT consistent
                 # plt.figure(figsize=(6, 6))
                 # if gt_instance_mask.ndim == 3:
                 #     plt.imshow(gt_instance_mask)
@@ -127,12 +161,56 @@ def calculate_tracking_consistency(video_path, spatrack2_path):
                 # plt.axis('off')
                 # plt.show()
 
+            # Se non trovato, cerca in un cerchio di raggio 5
+            if found_score == 0.0:
+                max_radius = 5
+                # Tabella score per distanza
+                score_table = {1: 0.99, 2: 0.9, 3: 0.8, 4: 0.5, 5: 0.30} # tunare questi valori
+                if gt_instance_mask.ndim == 3:
+                    target_id = pred_point_ids[k]
+                else:
+                    target_id = pred_point_ids[k]
+                for r in range(1, max_radius+1):
+                    found = False
+                    for dx in range(-r, r+1):
+                        for dy in range(-r, r+1):
+                            if dx*dx + dy*dy > r*r:
+                                continue
+                            nx = x_mapped + dx
+                            ny = y_mapped + dy
+                            if 0 <= nx < W_orig and 0 <= ny < H_orig:
+                                if foreground_mask[ny, nx]:
+                                    if gt_instance_mask.ndim == 3:
+                                        local_id = gt_instance_mask[ny, nx, 0]
+                                    else:
+                                        local_id = gt_instance_mask[ny, nx]
+                                    if local_id == target_id and local_id != 0:
+                                        found_score = score_table.get(r, 0.0)
+                                        print(f"DEBUG: Point {k} found in radius {r} at ({nx},{ny}), score={found_score}")
+                                        found = True
+                                        break
+                        if found:
+                            break
+                    if found:
+                        break
+                # if 0.0 < found_score <= 0.2:
+                    # plt.figure(figsize=(6, 6))
+                    # if gt_instance_mask.ndim == 3:
+                    #     plt.imshow(gt_instance_mask)
+                    # else:
+                    #     plt.imshow(gt_instance_mask, cmap='gray')
+                    # plt.scatter([x_mapped], [y_mapped], c='green', s=40, marker='o')
+                    # plt.title(f"GT mask with predicted point (frame {i}, point {k}) - Found in radius")
+                    # plt.axis('off')
+                    # plt.show()
+            consistent_score += found_score
+
+
     # --- 5. CALCULATE FINAL RESULT ---
     
-    tracking_consistency = (consistent_points / total_predicted_points) * 100 if total_predicted_points > 0 else 0
-    print(f"Result: {consistent_points} consistent points out of {total_predicted_points} total points.")
+    tracking_consistency = (consistent_score / total_predicted_points) * 100 if total_predicted_points > 0 else 0
+    print(f"Result: Consistency score {consistent_score:.2f} out of {total_predicted_points} total points.")
     print(f"DEBUG: Tracking consistency = {tracking_consistency:.2f}%")
-    
     return tracking_consistency
 
 # --- MAIN SCRIPT ---

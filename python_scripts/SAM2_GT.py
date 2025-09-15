@@ -1,6 +1,4 @@
-# Benchmarking script for SAM2 with Ground Truth - IoU calculation
-# I need: SAM2 segmentation masks per object, per frame - examples/kubric/results/sam2/video_name/sam_masks/frame_nnnn_obj_m_mask.png
-# I need: Ground Truth segmentation masks, per frame - examples/kubric/video_name/gt_masks/segmentation_nnnnn.png
+# Benchmarking script for SAM2 vs. Ground Truth - IoU calculation
 
 import os
 import numpy as np

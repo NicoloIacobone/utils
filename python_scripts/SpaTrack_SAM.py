@@ -1,0 +1,1 @@
+# Benchmark script for SpatialTrackerV2 vs. SAM2

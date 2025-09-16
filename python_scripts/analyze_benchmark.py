@@ -4,8 +4,8 @@ import seaborn as sns
 import os
 
 # --- CONFIGURATION ---
-CSV_FILE_PATH = '/Users/nicoloiacobone/Desktop/nico/UNIVERSITA/MAGISTRALE/Tesi/Tommasi/Zurigo/git_clones/examples/meeting_11_09/benchmark/iou_results.csv'
-OUTPUT_DIR = '/Users/nicoloiacobone/Desktop/nico/UNIVERSITA/MAGISTRALE/Tesi/Tommasi/Zurigo/git_clones/examples/meeting_11_09/benchmark/benchmark_plots' # Folder where plots will be saved
+CSV_FILE_PATH = '/Users/nicoloiacobone/Desktop/nico/UNIVERSITA/MAGISTRALE/Tesi/Tommasi/Zurigo/git_clones/examples/meeting_11_09/benchmark/tracking_consistency_spatrack2.csv'
+OUTPUT_DIR = '/Users/nicoloiacobone/Desktop/nico/UNIVERSITA/MAGISTRALE/Tesi/Tommasi/Zurigo/git_clones/examples/meeting_11_09/benchmark/benchmark_plots_spatrack2' # Folder where plots will be saved
 
 # Create the output directory if it does not exist
 if not os.path.exists(OUTPUT_DIR):
@@ -19,7 +19,7 @@ try:
     df = pd.read_csv(CSV_FILE_PATH)
     
     # Safety check: verify that the expected columns are present
-    expected_cols = ['video_name', 'frame_index', 'object_id', 'iou']
+    expected_cols = ['video_name', 'frame', 'object_id', 'iou']
     if not all(col in df.columns for col in expected_cols):
         print("WARNING: The columns in the CSV file do not match the expected ones.")
         print(f"Expected columns: {expected_cols}")
@@ -68,7 +68,8 @@ sns.set_theme(style="whitegrid")
 # --- Plot 1: Comparison of average mIoU for each video (Bar Chart) ---
 # This plot gives you an immediate overview of which videos are "easy" and which are "difficult".
 plt.figure(figsize=(12, 8))
-barplot = sns.barplot(x=miou_per_video.index, y=miou_per_video.values, palette="viridis")
+# barplot = sns.barplot(x=miou_per_video.index, y=miou_per_video.values, palette="viridis")
+barplot = sns.barplot(x=miou_per_video.index, y=miou_per_video.values, hue=miou_per_video.index, palette="viridis", legend=False)
 barplot.set_title('Average mIoU per Video', fontsize=16)
 barplot.set_xlabel('Video Name', fontsize=12)
 barplot.set_ylabel('Mean IoU (mIoU)', fontsize=12)
@@ -108,7 +109,8 @@ for video_name in videos_to_plot:
 # This plot shows not only the mean, but also the variance, quartiles, and outliers.
 # Very useful to see if a video has stable or highly variable performance.
 plt.figure(figsize=(12, 8))
-boxplot = sns.boxplot(x='video_name', y='iou', data=df, palette="coolwarm")
+# boxplot = sns.boxplot(x='video_name', y='iou', data=df, palette="coolwarm")
+boxplot = sns.boxplot(x='video_name', y='iou', hue='video_name', data=df, palette="coolwarm", legend=False)
 boxplot.set_title('Distribution of IoU Scores per Video', fontsize=16)
 boxplot.set_xlabel('Video Name', fontsize=12)
 boxplot.set_ylabel('IoU Score', fontsize=12)

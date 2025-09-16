@@ -85,7 +85,7 @@ def calculate_tracking_consistency(video_path, spatrack2_path):
     # --- Prepare CSV output (one CSV per video) ---
     # We write per-frame rows with columns [video_name, frame, object_id, iou].
     video_name = os.path.basename(video_path)
-    csv_path = os.path.join(os.path.dirname(spatrack2_path), "per_frame_iou.csv")
+    csv_path = os.path.join(os.path.dirname(spatrack2_path), "tracking_consistency_spatrack2.csv")
     os.makedirs(os.path.dirname(csv_path), exist_ok=True)
 
     # --- 4. ITERATE AND CALCULATE CONSISTENCY ---

@@ -94,7 +94,7 @@ def benchmark_frame(gt_mask_path, sam_masks_dir, color_to_id_map, video_name, fr
     return frame_miou
 
 # Prepare CSV file for writing IoU results
-csv_output_path = "iou_results.csv"
+csv_output_path = "iou_sam2.csv"
 csv_file = open(csv_output_path, "w", newline="")
 csv_writer = csv.writer(csv_file)
 csv_writer.writerow(["video_name", "frame", "object_id", "iou"])

@@ -8,6 +8,8 @@ from PIL import Image
 import os
 from glob import glob
 import matplotlib.pyplot as plt
+import csv
+from collections import defaultdict
 
 def calculate_tracking_consistency(video_path, spatrack2_path):
     """
@@ -80,130 +82,157 @@ def calculate_tracking_consistency(video_path, spatrack2_path):
         else:
             pred_point_ids[k] = 0  # background or out of bounds
 
+    # --- Prepare CSV output (one CSV per video) ---
+    # We write per-frame rows with columns [video_name, frame, object_id, iou].
+    video_name = os.path.basename(video_path)
+    csv_path = os.path.join(os.path.dirname(spatrack2_path), "per_frame_iou.csv")
+    os.makedirs(os.path.dirname(csv_path), exist_ok=True)
+
     # --- 4. ITERATE AND CALCULATE CONSISTENCY ---
-    for i in range(num_pred_frames):
-        # a. Find the corresponding GT frame
-        gt_frame_index = i * stride
-        print(f"DEBUG: Frame {i}: GT frame index {gt_frame_index}")
-        if gt_frame_index >= len(gt_mask_files):
-            print(f"Warning: GT index {gt_frame_index} out of bounds. Breaking loop.")
-            break
-        gt_mask_path = gt_mask_files[gt_frame_index]
-        gt_instance_mask = np.array(Image.open(gt_mask_path))
-        print(f"DEBUG: Loaded GT mask {gt_mask_path}, shape: {gt_instance_mask.shape}")
+    # Open CSV once for this video and append rows for each frame
+    with open(csv_path, mode="a", newline="") as csv_file:
+        csv_writer = csv.writer(csv_file)
+        # Header as requested
+        if csv_file.tell() == 0:
+            csv_writer.writerow(["video_name", "frame", "object_id", "iou"])  # iou here is a point-based proxy per object
 
-        # b. Create "Foreground" mask (True if not background)
-        # Handles both ID masks and RGB masks
-        if gt_instance_mask.ndim == 3: # RGB mask
-            background_mask = np.all(gt_instance_mask == [0,0,0], axis=-1)
-            print("DEBUG: GT mask is RGB")
-        else: # ID mask
-            background_mask = (gt_instance_mask == 0)
-            print("DEBUG: GT mask is ID mask")
-        foreground_mask = ~background_mask
+        for i in range(num_pred_frames):
+            # a. Find the corresponding GT frame
+            gt_frame_index = i * stride
+            print(f"DEBUG: Frame {i}: GT frame index {gt_frame_index}")
+            if gt_frame_index >= len(gt_mask_files):
+                print(f"Warning: GT index {gt_frame_index} out of bounds. Breaking loop.")
+                break
+            gt_mask_path = gt_mask_files[gt_frame_index]
+            gt_instance_mask = np.array(Image.open(gt_mask_path))
+            print(f"DEBUG: Loaded GT mask {gt_mask_path}, shape: {gt_instance_mask.shape}")
 
-        # c. Iterate over points in this frame
-        for k in range(num_points):
-            total_predicted_points += 1
-            x_pred, y_pred, confidence = pred_tracks_2d[i, k, :]
-            print(f"DEBUG: Frame {i}, Point {k}: x_pred={x_pred}, y_pred={y_pred}, confidence={confidence}")
-
-            # i. Filter out off-screen points
-            if not (0 <= x_pred < W_scaled and 0 <= y_pred < H_scaled):
-                print(f"DEBUG: Point {k} is off-screen (predicted coords: {x_pred}, {y_pred}), skipping.")
-                continue # Point is off-screen, so not consistent
-
-            # iii. Rescale coordinates
-            x_mapped = int(x_pred * scale_x)
-            y_mapped = int(y_pred * scale_y)
-            print(f"DEBUG: Point {k} mapped to GT coords: ({x_mapped}, {y_mapped})")
-
-            # Ensure mapped coordinates are still within bounds after rounding
-            if not (0 <= x_mapped < W_orig and 0 <= y_mapped < H_orig):
-                print(f"DEBUG: Mapped point {k} out of GT bounds, skipping.")
-                continue
-
-            # iv. Check consistency: foreground and ID match
-            found_score = 0.0
-            if foreground_mask[y_mapped, x_mapped]:
-                # Get GT ID at this location
-                if gt_instance_mask.ndim == 3:
-                    gt_id = gt_instance_mask[y_mapped, x_mapped, 0]
-                else:
-                    gt_id = gt_instance_mask[y_mapped, x_mapped]
-                if gt_id == pred_point_ids[k] and gt_id != 0:
-                    found_score = 1.0
-                    print(f"DEBUG: Point {k} is consistent (foreground, ID match: {gt_id}).")
-                else:
-                    print(f"DEBUG: Point {k} is foreground but ID mismatch (GT: {gt_id}, Pred: {pred_point_ids[k]}).")
-                    # Show GT mask and overlay predicted point when foreground but ID mismatch
-                    # plt.figure(figsize=(6, 6))
-                    # if gt_instance_mask.ndim == 3:
-                    #     plt.imshow(gt_instance_mask)
-                    # else:
-                    #     plt.imshow(gt_instance_mask, cmap='gray')
-                    # plt.scatter([x_mapped], [y_mapped], c='red', s=40, marker='o')
-                    # plt.title(f"GT mask with predicted point (frame {i}, point {k}) - ID mismatch")
-                    # plt.axis('off')
-                    # plt.show()
+            # b. Create "Foreground" mask (True if not background)
+            # Handles both ID masks and RGB masks
+            if gt_instance_mask.ndim == 3:
+                # RGB mask: foreground where any channel is non-zero
+                foreground_mask = np.any(gt_instance_mask != 0, axis=2)
             else:
-                print(f"DEBUG: Point {k} is NOT consistent (background).")
-                # print(f"DEBUG: GT mask value at ({y_mapped}, {x_mapped}): {gt_instance_mask[y_mapped, x_mapped]}")
-                # print(f"DEBUG: loaded mask path: {gt_mask_path}")
-                # # Show GT mask and overlay predicted point only when NOT consistent
-                # plt.figure(figsize=(6, 6))
-                # if gt_instance_mask.ndim == 3:
-                #     plt.imshow(gt_instance_mask)
-                # else:
-                #     plt.imshow(gt_instance_mask, cmap='gray')
-                # plt.scatter([x_mapped], [y_mapped], c='red', s=40, marker='o')
-                # plt.title(f"GT mask with predicted point (frame {i}, point {k}) - NOT consistent")
-                # plt.axis('off')
-                # plt.show()
+                # Single-channel ID mask: foreground where id != 0
+                foreground_mask = gt_instance_mask != 0
 
-            # Se non trovato, cerca in un cerchio di raggio 5
-            if found_score == 0.0:
-                max_radius = 5
-                # Tabella score per distanza
-                score_table = {1: 0.99, 2: 0.9, 3: 0.8, 4: 0.5, 5: 0.30} # tunare questi valori
-                if gt_instance_mask.ndim == 3:
+            # c. Iterate over points in this frame
+            # Collect per-object scores for this frame, then write CSV rows after processing all points of the frame
+            frame_obj_scores = defaultdict(list)
+
+            for k in range(num_points):
+                x_pred, y_pred, confidence = pred_tracks_2d[i, k, :]
+                print(f"DEBUG: Frame {i}, Point {k}: x_pred={x_pred}, y_pred={y_pred}, confidence={confidence}")
+
+                total_predicted_points += 1
+                found_score = 0.0
+
+                # i. Off-screen points in predicted (scaled) space
+                if not (0 <= x_pred < W_scaled and 0 <= y_pred < H_scaled):
+                    print(f"DEBUG: Point {k} is off-screen (predicted coords: {x_pred}, {y_pred}), trying radius search.")
+                    # Rescale coordinates for radius search
+                    x_mapped = int(x_pred * scale_x)
+                    y_mapped = int(y_pred * scale_y)
+                    # Radius search logic
+                    max_radius = 5
+                    score_table = {1: 0.99, 2: 0.9, 3: 0.8, 4: 0.5, 5: 0.30}  # tune these values
                     target_id = pred_point_ids[k]
-                else:
-                    target_id = pred_point_ids[k]
-                for r in range(1, max_radius+1):
                     found = False
-                    for dx in range(-r, r+1):
-                        for dy in range(-r, r+1):
-                            if dx*dx + dy*dy > r*r:
-                                continue
-                            nx = x_mapped + dx
-                            ny = y_mapped + dy
-                            if 0 <= nx < W_orig and 0 <= ny < H_orig:
-                                if foreground_mask[ny, nx]:
-                                    if gt_instance_mask.ndim == 3:
-                                        local_id = gt_instance_mask[ny, nx, 0]
-                                    else:
-                                        local_id = gt_instance_mask[ny, nx]
-                                    if local_id == target_id and local_id != 0:
-                                        found_score = score_table.get(r, 0.0)
-                                        print(f"DEBUG: Point {k} found in radius {r} at ({nx},{ny}), score={found_score}")
-                                        found = True
-                                        break
+                    for r in range(1, max_radius + 1):
+                        for dx in range(-r, r + 1):
+                            for dy in range(-r, r + 1):
+                                if dx * dx + dy * dy > r * r:
+                                    continue
+                                nx = x_mapped + dx
+                                ny = y_mapped + dy
+                                if 0 <= nx < W_orig and 0 <= ny < H_orig:
+                                    if foreground_mask[ny, nx]:
+                                        if gt_instance_mask.ndim == 3:
+                                            local_id = gt_instance_mask[ny, nx, 0]
+                                        else:
+                                            local_id = gt_instance_mask[ny, nx]
+                                        if local_id == target_id and local_id != 0:
+                                            found_score = score_table.get(r, 0.0)
+                                            print(f"DEBUG: Off-screen Point {k} found in radius {r} at ({nx},{ny}), score={found_score}")
+                                            found = True
+                                            break
+                            if found:
+                                break
                         if found:
                             break
-                    if found:
-                        break
-                # if 0.0 < found_score <= 0.2:
-                    # plt.figure(figsize=(6, 6))
-                    # if gt_instance_mask.ndim == 3:
-                    #     plt.imshow(gt_instance_mask)
-                    # else:
-                    #     plt.imshow(gt_instance_mask, cmap='gray')
-                    # plt.scatter([x_mapped], [y_mapped], c='green', s=40, marker='o')
-                    # plt.title(f"GT mask with predicted point (frame {i}, point {k}) - Found in radius")
-                    # plt.axis('off')
-                    # plt.show()
-            consistent_score += found_score
+                    if not found:
+                        # If still not found, ignore this point (decrement total_predicted_points) and skip CSV aggregation
+                        total_predicted_points -= 1
+                        print(f"DEBUG: Off-screen Point {k} not found in radius, ignored from total_predicted_points.")
+                        continue  # Skip rest of logic for off-screen points
+                    else:
+                        # Found via radius search, count towards global score and per-object aggregation
+                        consistent_score += found_score
+                        frame_obj_scores[pred_point_ids[k]].append(float(found_score))
+                        continue
+
+                # ii. In-bounds: rescale coordinates
+                x_mapped = int(x_pred * scale_x)
+                y_mapped = int(y_pred * scale_y)
+                print(f"DEBUG: Point {k} mapped to GT coords: ({x_mapped}, {y_mapped})")
+
+                # Ensure mapped coordinates are still within bounds after rounding
+                if not (0 <= x_mapped < W_orig and 0 <= y_mapped < H_orig):
+                    print(f"DEBUG: Mapped point {k} out of GT bounds, skipping.")
+                    continue
+
+                # iii. Check consistency: foreground and ID match
+                if foreground_mask[y_mapped, x_mapped]:
+                    # Get GT ID at this location
+                    if gt_instance_mask.ndim == 3:
+                        gt_id = gt_instance_mask[y_mapped, x_mapped, 0]
+                    else:
+                        gt_id = gt_instance_mask[y_mapped, x_mapped]
+                    if gt_id == pred_point_ids[k] and gt_id != 0:
+                        found_score = 1.0
+                        print(f"DEBUG: Point {k} is consistent (foreground, ID match: {gt_id}).")
+                    else:
+                        print(f"DEBUG: Point {k} is foreground but ID mismatch (GT: {gt_id}, Pred: {pred_point_ids[k]}).")
+                else:
+                    print(f"DEBUG: Point {k} is NOT consistent (background).")
+
+                # iv. If not found, search in a circle of radius 5 around mapped location
+                if found_score == 0.0:
+                    max_radius = 5
+                    score_table = {1: 0.99, 2: 0.9, 3: 0.8, 4: 0.5, 5: 0.30}  # tune these values
+                    target_id = pred_point_ids[k]
+                    found = False
+                    for r in range(1, max_radius + 1):
+                        for dx in range(-r, r + 1):
+                            for dy in range(-r, r + 1):
+                                if dx * dx + dy * dy > r * r:
+                                    continue
+                                nx = x_mapped + dx
+                                ny = y_mapped + dy
+                                if 0 <= nx < W_orig and 0 <= ny < H_orig:
+                                    if foreground_mask[ny, nx]:
+                                        if gt_instance_mask.ndim == 3:
+                                            local_id = gt_instance_mask[ny, nx, 0]
+                                        else:
+                                            local_id = gt_instance_mask[ny, nx]
+                                        if local_id == target_id and local_id != 0:
+                                            found_score = score_table.get(r, 0.0)
+                                            print(f"DEBUG: Point {k} found in radius {r} at ({nx},{ny}), score={found_score}")
+                                            found = True
+                                            break
+                        if found:
+                            break
+                    # no special handling if still 0.0: keep the point with score 0
+
+                # v. Accumulate scores
+                consistent_score += found_score
+                frame_obj_scores[pred_point_ids[k]].append(float(found_score))
+
+            # d. After processing all points of the frame, write one CSV row per object with the mean score
+            # NOTE: "iou" here represents the mean point-consistency score for that object in this frame.
+            for obj_id, scores in frame_obj_scores.items():
+                obj_iou = float(np.mean(scores)) if len(scores) > 0 else 0.0
+                csv_writer.writerow([video_name, gt_frame_index, int(obj_id), obj_iou])
 
 
     # --- 5. CALCULATE FINAL RESULT ---
@@ -219,6 +248,7 @@ if __name__ == "__main__":
     videos_path = "/scratch2/nico/examples/kubric"
     spatrack2_output_path = os.path.join(videos_path, "results", "SpaTrackV2")
     video_names = [os.path.basename(d) for d in sorted(glob(os.path.join(videos_path, "video_*")))]
+    # video_names = ["video_24_more_dynamic_long"] # test su singolo video
 
     print(f"DEBUG: Found video names: {video_names}")
 

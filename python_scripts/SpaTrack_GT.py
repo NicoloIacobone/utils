@@ -94,7 +94,7 @@ def calculate_tracking_consistency(video_path, spatrack2_path):
         csv_writer = csv.writer(csv_file)
         # Header as requested
         if csv_file.tell() == 0:
-            csv_writer.writerow(["video_name", "frame", "object_id", "iou"])  # iou here is a point-based proxy per object
+            csv_writer.writerow(["video_name", "frame_index", "object_id", "iou"])  # iou here is a point-based proxy per object
 
         for i in range(num_pred_frames):
             # a. Find the corresponding GT frame

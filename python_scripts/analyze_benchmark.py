@@ -4,8 +4,10 @@ import seaborn as sns
 import os
 
 # --- CONFIGURATION ---
-CSV_FILE_PATH = '/Users/nicoloiacobone/Desktop/nico/UNIVERSITA/MAGISTRALE/Tesi/Tommasi/Zurigo/git_clones/examples/meeting_11_09/benchmark/tracking_consistency_spatrack2.csv'
-OUTPUT_DIR = '/Users/nicoloiacobone/Desktop/nico/UNIVERSITA/MAGISTRALE/Tesi/Tommasi/Zurigo/git_clones/examples/meeting_11_09/benchmark/benchmark_plots_spatrack2' # Folder where plots will be saved
+# CSV_FILE_PATH = '/Users/nicoloiacobone/Desktop/nico/UNIVERSITA/MAGISTRALE/Tesi/Tommasi/Zurigo/git_clones/examples/meeting_11_09/benchmark/tracking_consistency_spatrack2.csv'
+# OUTPUT_DIR = '/Users/nicoloiacobone/Desktop/nico/UNIVERSITA/MAGISTRALE/Tesi/Tommasi/Zurigo/git_clones/examples/meeting_11_09/benchmark/benchmark_plots_spatrack2' # Folder where plots will be saved
+CSV_FILE_PATH = '/Users/nicoloiacobone/Desktop/nico/UNIVERSITA/MAGISTRALE/Tesi/Tommasi/Zurigo/git_clones/examples/meeting_11_09/benchmark/iou_sam2.csv'
+OUTPUT_DIR = '/Users/nicoloiacobone/Desktop/nico/UNIVERSITA/MAGISTRALE/Tesi/Tommasi/Zurigo/git_clones/examples/meeting_11_09/benchmark/benchmark_plots_sam2' # Folder where plots will be saved
 
 # Create the output directory if it does not exist
 if not os.path.exists(OUTPUT_DIR):
@@ -69,13 +71,17 @@ sns.set_theme(style="whitegrid")
 # This plot gives you an immediate overview of which videos are "easy" and which are "difficult".
 plt.figure(figsize=(12, 8))
 # barplot = sns.barplot(x=miou_per_video.index, y=miou_per_video.values, palette="viridis")
-barplot = sns.barplot(x=miou_per_video.index, y=miou_per_video.values, hue=miou_per_video.index, palette="viridis", legend=False)
+short_video_names = [name.split('_')[0] + '_' + name.split('_')[1] for name in miou_per_video.index]
+barplot = sns.barplot(x=short_video_names, y=miou_per_video.values, hue=short_video_names, palette="viridis", legend=False)
 barplot.set_title('Average mIoU per Video', fontsize=16)
+# barplot.set_title('Tracking Consistency per Video', fontsize=16)
 barplot.set_xlabel('Video Name', fontsize=12)
 barplot.set_ylabel('Mean IoU (mIoU)', fontsize=12)
+# barplot.set_ylabel('Tracking Consistency', fontsize=12)
 plt.xticks(rotation=45, ha="right", fontsize=10) # Rotate labels to avoid overlap
 plt.tight_layout() # Adjust layout to fit labels
 plot1_path = os.path.join(OUTPUT_DIR, 'miou_per_video.png')
+# plot1_path = os.path.join(OUTPUT_DIR, 'tracking_consistency.png')
 plt.savefig(plot1_path)
 plt.close()
 print(f"Plot 1 saved at: {plot1_path}")
@@ -85,7 +91,7 @@ print(f"Plot 1 saved at: {plot1_path}")
 # This is the most powerful plot for analyzing occlusions and failures.
 # Select some videos to plot (e.g., a good one, a bad one).
 # MODIFY the `videos_to_plot` list with the names of your most interesting videos.
-videos_to_plot = ['video_01_static_short', 'video_24_more_dynamic_long'] 
+videos_to_plot = ['video_02_static_medium', 'video_24_more_dynamic_long'] 
 
 for video_name in videos_to_plot:
     if video_name in miou_per_frame.index:
@@ -96,11 +102,14 @@ for video_name in videos_to_plot:
         
         lineplot = sns.lineplot(x=video_data.index, y=video_data.values)
         lineplot.set_title(f'mIoU Trend per Frame - Video: {video_name}', fontsize=16)
+        # lineplot.set_title(f'Tracking Consistency - Video: {video_name}', fontsize=16)
         lineplot.set_xlabel('Frame Index', fontsize=12)
         lineplot.set_ylabel('Mean IoU (mIoU)', fontsize=12)
+        # lineplot.set_ylabel('Tracking Consistency', fontsize=12)
         lineplot.set_ylim(0, 1.05) # Fix Y axis between 0 and 1 for fair comparison
         
         plot2_path = os.path.join(OUTPUT_DIR, f'miou_over_time_{video_name}.png')
+        # plot2_path = os.path.join(OUTPUT_DIR, f'tracking_consistency_over_time_{video_name}.png')
         plt.savefig(plot2_path)
         plt.close()
         print(f"Plot 2 for '{video_name}' saved at: {plot2_path}")
@@ -110,13 +119,18 @@ for video_name in videos_to_plot:
 # Very useful to see if a video has stable or highly variable performance.
 plt.figure(figsize=(12, 8))
 # boxplot = sns.boxplot(x='video_name', y='iou', data=df, palette="coolwarm")
-boxplot = sns.boxplot(x='video_name', y='iou', hue='video_name', data=df, palette="coolwarm", legend=False)
+# Create a new column with shortened video names (e.g., "video_01")
+df['short_video_name'] = df['video_name'].apply(lambda x: '_'.join(x.split('_')[:2]))
+boxplot = sns.boxplot(x='short_video_name', y='iou', hue='short_video_name', data=df, palette="coolwarm", legend=False)
 boxplot.set_title('Distribution of IoU Scores per Video', fontsize=16)
+# boxplot.set_title('Distribution of Tracking Consistency per Video', fontsize=16)
 boxplot.set_xlabel('Video Name', fontsize=12)
 boxplot.set_ylabel('IoU Score', fontsize=12)
+# boxplot.set_ylabel('Tracking Consistency', fontsize=12)
 plt.xticks(rotation=45, ha="right", fontsize=10)
 plt.tight_layout()
 plot3_path = os.path.join(OUTPUT_DIR, 'iou_distribution_per_video.png')
+# plot3_path = os.path.join(OUTPUT_DIR, 'tracking_consistency_distribution_per_video.png')
 plt.savefig(plot3_path)
 plt.close()
 print(f"Plot 3 saved at: {plot3_path}")

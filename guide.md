@@ -51,6 +51,8 @@ module load stack/2024-06 python/3.11 cuda/12.4 eth_proxy\
 source myenv/bin/activate
 
 ### (senza --system-site-packages)
+0. git pull https://github.com/NicoloIacobone/sam2.git
+0. cd sam2
 0. module purge
 1. module load stack/2024-06 python/3.11 cuda/12.4
 2. python -m venv myenv

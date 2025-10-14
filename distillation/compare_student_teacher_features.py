@@ -9,7 +9,8 @@ def mean_std_difference(student_embeddings, teacher_embeddings):
     """
     Computes and prints the mean and standard deviation of student and teacher embeddings for each batch,
     as well as the mean and standard deviation of their differences. Also calculates and prints the average
-    difference between the means and standard deviations across all batches.
+    difference between the means and standard deviations across all batches. Additionally computes and prints
+    the average cosine similarity between student and teacher embeddings for each batch and overall.
 
     Args:
         student_embeddings (torch.Tensor): A batch of student embeddings of shape (B, ...), where B is the batch size.
@@ -20,9 +21,11 @@ def mean_std_difference(student_embeddings, teacher_embeddings):
             - Student mean and standard deviation
             - Teacher mean and standard deviation
             - Mean and standard deviation of the difference between student and teacher embeddings
+            - Cosine similarity between student and teacher embeddings
         At the end:
             - Average difference between means across all batches
             - Average difference between standard deviations across all batches
+            - Average cosine similarity across all batches
     """
     B = student_embeddings.shape[0]
 
@@ -30,6 +33,7 @@ def mean_std_difference(student_embeddings, teacher_embeddings):
     student_stds = []
     teacher_means = []
     teacher_stds = []
+    cosine_sims = []
 
     for i in range(B):
         print(f"Batch {i}:")
@@ -49,10 +53,21 @@ def mean_std_difference(student_embeddings, teacher_embeddings):
         teacher_means.append(t_mean)
         teacher_stds.append(t_std)
 
+        # Cosine similarity calculation
+        s_flat = student_embeddings[i].flatten().float()
+        t_flat = teacher_embeddings[i].flatten().float()
+        cos_sim = F.cosine_similarity(s_flat.unsqueeze(0), t_flat.unsqueeze(0)).item()
+        print("  Cosine similarity:", cos_sim)
+        cosine_sims.append(cos_sim)
+
     mean_diff = sum(student_means) / B - sum(teacher_means) / B
     std_diff = sum(student_stds) / B - sum(teacher_stds) / B
-    print("\nAverage difference between means:", mean_diff)
-    print("Average difference between stds:", std_diff)
+    avg_cosine_sim = sum(cosine_sims) / B
+    print(f"\033[91m\nAverage difference between means: {mean_diff}\033[0m")
+    print(f"\033[91mAverage difference between stds: {std_diff}\033[0m")
+    print(f"\033[94mAverage cosine similarity: {avg_cosine_sim}\033[0m")
+
+    return mean_diff, std_diff, avg_cosine_sim
 
 def heatmap_sanity_check_single_channel(student_embeddings, teacher_embeddings, output_dir):
     """
@@ -153,12 +168,15 @@ def heatmap_sanity_check_avg_all_channels(student_embeddings, teacher_embeddings
 
         print(f"Saved heatmap comparison for average all channels for batch {batch_idx} to {output_path}")
 
-student_path = "/Users/nicoloiacobone/Desktop/nico/UNIVERSITA/MAGISTRALE/Tesi/Tommasi/Zurigo/git_clones/distillation/mapanything"
+student_path = "/Users/nicoloiacobone/Desktop/nico/UNIVERSITA/MAGISTRALE/Tesi/Tommasi/Zurigo/git_clones/distillation/mapanything/not_distilled" # cambia in not_distilled se vuoi quelli base
 student_embeddings_name = "student_embeddings.pt"
 teacher_path = "/Users/nicoloiacobone/Desktop/nico/UNIVERSITA/MAGISTRALE/Tesi/Tommasi/Zurigo/git_clones/distillation/sam2"
 teacher_embeddings_name = "teacher_embeddings.pt"
 dirs_to_compare = ["box_ufficio", "yokohama", "tenda_ufficio", "sedia_ufficio", "pianta", "car_drift"]
-output_dir = "/Users/nicoloiacobone/Desktop/nico/UNIVERSITA/MAGISTRALE/Tesi/Tommasi/Zurigo/git_clones/weekly_meetings/Oct_02/output_comparison"
+output_dir = "/Users/nicoloiacobone/Desktop/nico/UNIVERSITA/MAGISTRALE/Tesi/Tommasi/Zurigo/git_clones/distillation/heatmap_comparisons"
+os.makedirs(output_dir, exist_ok=True)
+
+all_mean_diffs, all_std_diffs, all_cosine_sims = [], [], []
 
 for dir_name in dirs_to_compare:
     student_embeddings_file = os.path.join(student_path, dir_name, student_embeddings_name)
@@ -166,8 +184,26 @@ for dir_name in dirs_to_compare:
     output_dir_this = os.path.join(output_dir, dir_name)
     os.makedirs(output_dir_this, exist_ok=True)
 
+    print(f"\nComparing embeddings in directory: {dir_name}")
+
     student_embeddings = torch.load(student_embeddings_file)
     teacher_embeddings = torch.load(teacher_embeddings_file)
 
-    heatmap_sanity_check_single_channel(student_embeddings, teacher_embeddings, output_dir_this)
-    heatmap_sanity_check_avg_all_channels(student_embeddings, teacher_embeddings, output_dir_this)
+
+    mean_diff, std_diff, avg_cosine_sim = mean_std_difference(student_embeddings, teacher_embeddings)
+
+    all_mean_diffs.append(mean_diff)
+    all_std_diffs.append(std_diff)
+    all_cosine_sims.append(avg_cosine_sim)
+
+    # heatmap_sanity_check_single_channel(student_embeddings, teacher_embeddings, output_dir_this)
+    # heatmap_sanity_check_avg_all_channels(student_embeddings, teacher_embeddings, output_dir_this)
+
+# Print overall averages after all directories
+overall_mean_diff = sum(all_mean_diffs) / len(all_mean_diffs)
+overall_std_diff = sum(all_std_diffs) / len(all_std_diffs)
+overall_cosine_sim = sum(all_cosine_sims) / len(all_cosine_sims)
+print("\n\033[92m=== Overall Results Across All Directories ===\033[0m")
+print(f"\033[91mAverage difference between means (overall): {overall_mean_diff}\033[0m")
+print(f"\033[91mAverage difference between stds (overall): {overall_std_diff}\033[0m")
+print(f"\033[94mAverage cosine similarity (overall): {overall_cosine_sim}\033[0m")

@@ -20,5 +20,5 @@ def convert_heic_to_png(folder_path):
         print(f"Eliminato: {heic_file}")
 
 if __name__ == "__main__":
-    input_folder = "/scratch2/nico/examples/photos/tenda_ufficio"
+    input_folder = "/scratch2/nico/examples/photos/box_ufficio"
     convert_heic_to_png(input_folder)

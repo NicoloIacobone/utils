@@ -79,6 +79,19 @@ python tapip3d_viz.py nome/file --> visualizzare risultato
 6. python -m pip install -r requirements.txt (controlla che nei requirement.txt ci sia pyceres==2.4)
 7. ENJOY
 ---
+# MapAnything
+0. module purge
+0. git clone https://github.com/NicoloIacobone/map-anything.git
+1. module load stack/2024-06 python/3.12 cuda/12.4
+2. python -m venv myenv
+3. source myenv/bin/activate
+4. pip install --upgrade pip wheel setuptools
+5. pip install torch==2.6.0 --index-url https://download.pytorch.org/whl/cu124
+6. pip install -e .
+7. pip install -e ".[all]"
+8. pre-commit install
+
+---
 ### Usare VS Code (code-server su Euler)
 1. nano ~/.config/euler/jupyterhub/config_vs_code e aggiungere le seguenti due righe
 2. module load stack/2024-06 python/3.11 eth_proxy code-server/4.89.1

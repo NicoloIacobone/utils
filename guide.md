@@ -84,6 +84,7 @@ python tapip3d_viz.py nome/file --> visualizzare risultato
 # MapAnything
 0. module purge
 0. git clone https://github.com/NicoloIacobone/map-anything.git
+0. cd map-anything
 1. module load stack/2024-06 python/3.12 cuda/12.4
 2. python -m venv myenv
 3. source myenv/bin/activate
@@ -91,7 +92,7 @@ python tapip3d_viz.py nome/file --> visualizzare risultato
 5. pip install torch==2.6.0 --index-url https://download.pytorch.org/whl/cu124
 6. pip install -e .
 7. pip install -e ".[all]"
-8. pre-commit install
+<!-- 8. pre-commit install -->
 
 ---
 ### Usare VS Code (code-server su Euler)

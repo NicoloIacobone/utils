@@ -92,10 +92,6 @@ python tapip3d_viz.py nome/file --> visualizzare risultato
 5. pip install torch==2.6.0 --index-url https://download.pytorch.org/whl/cu124
 6. pip install -e .
 7. pip install -e ".[all]"
-<<<<<<< HEAD
-=======
-8. pip install wandb
->>>>>>> f1bed5f35babc41dfdb1b80967c89076bc303042
 <!-- 8. pre-commit install -->
 
 ---

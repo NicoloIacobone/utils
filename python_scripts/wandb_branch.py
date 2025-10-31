@@ -1,7 +1,8 @@
 import wandb
 api = wandb.Api()
 project = "mapanything-distillation"
-old = api.run("nico/mapanything-distillation/run_5_distillation")
+# old = api.run("nico/mapanything-distillation/run_5_distillation")
+old = api.run("nicolo-iacobone-politecnico-di-torino/mapanything-distillation/cea70w6j")
 
 new = wandb.init(project=project, name="run_5_distillation_branch25E")
 for row in old.history(keys=["epoch","train_loss","val_loss"], pandas=False):

@@ -62,7 +62,8 @@ source myenv/bin/activate
 6. pip install -e .
 7. pip install -e .[notebooks]
 8. cd checkpoints && ./download_ckpts.sh && cd ..
-9. ENJOY
+9. pip install seaborn wandb
+10. ENJOY
 ---
 ## SpatialTrackerV2
 module load stack/2024-06 python/3.11 eth_proxy\

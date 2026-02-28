@@ -91,9 +91,24 @@ python tapip3d_viz.py nome/file --> visualizzare risultato
 3. source myenv/bin/activate
 4. pip install --upgrade pip wheel setuptools
 5. pip install torch==2.6.0 --index-url https://download.pytorch.org/whl/cu124
-6. pip install -e .
+6. pip install -e .pip install -e .
 7. pip install -e ".[all]"
 <!-- 8. pre-commit install -->
+
+# wai_processing
+0. module purge
+0. cd map-anything
+1. module load stack/2024-06 python/3.12 cuda/12.4 eth_proxy
+2. python -m venv wai_processing
+3. source wai_processing/bin/activate
+4. pip install --upgrade pip wheel setuptools
+5. pip install --no-deps .
+6. cd data_processing/wai_processing/
+7. pip install torch==2.6.0 --index-url https://download.pytorch.org/whl/cu124
+8. srun --cpus-per-task=1 --mem-per-cpu=4096 --gpus=rtx_4090:1 --time=01:00:00 --pty bash
+9. cd map-anything/data_processing/wai_processing/
+10. source ../../wai_processing/bin/activate
+11. pip install -e .[all] --no-build-isolation
 
 ---
 ### Usare VS Code (code-server su Euler)

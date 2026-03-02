@@ -91,7 +91,7 @@ python tapip3d_viz.py nome/file --> visualizzare risultato
 3. source myenv/bin/activate
 4. pip install --upgrade pip wheel setuptools
 5. pip install torch==2.6.0 --index-url https://download.pytorch.org/whl/cu124
-6. pip install -e .pip install -e .
+6. pip install -e .
 7. pip install -e ".[all]"
 <!-- 8. pre-commit install -->
 

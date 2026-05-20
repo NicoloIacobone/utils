@@ -1,3 +1,48 @@
+# VGGT-omega
+0. module purge
+0. git clone https://github.com/NicoloIacobone/vggt-omega.git
+0. cd vggt-omega
+1. module load stack/2024-06 python/3.12 cuda/12.4
+2. python -m venv myenv
+3. source myenv/bin/activate
+4. pip install --upgrade pip wheel setuptools
+5. pip install -r requirements.txt
+6. pip install -e .
+
+# MapAnything
+0. module purge
+0. git clone https://github.com/NicoloIacobone/map-anything.git
+0. cd map-anything
+1. module load stack/2024-06 python/3.12 cuda/12.4
+2. python -m venv myenv
+3. source myenv/bin/activate
+4. pip install --upgrade pip wheel setuptools
+5. pip install torch==2.6.0 --index-url https://download.pytorch.org/whl/cu124
+6. pip install -e .
+7. pip install -e ".[all]"
+8. rm -rf /cluster/scratch/niacobone/.cache/torch/hub/facebookresearch_dinov2_main
+9. rm -rf /cluster/scratch/niacobone/.cache/torch/hub/checkpoints
+<!-- 8. pre-commit install -->
+
+## SAM2
+module load stack/2024-06 python/3.11 cuda/12.4 eth_proxy\
+source myenv/bin/activate
+
+### (senza --system-site-packages)
+0. git clone https://github.com/NicoloIacobone/sam2.git
+0. cd sam2
+0. module purge
+1. module load stack/2024-06 python/3.11 cuda/12.4
+2. python -m venv myenv
+3. source myenv/bin/activate
+4. pip install --upgrade pip wheel setuptools
+5. pip install torch==2.5.1 torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cu124
+6. pip install -e .
+7. pip install -e .[notebooks]
+8. cd checkpoints && ./download_ckpts.sh && cd ..
+9. pip install seaborn wandb
+10. ENJOY
+
 ## Connessione
 ssh niacobone@euler.ethz.ch
 
@@ -46,25 +91,6 @@ source myenv/bin/activate
 Euler: eseguire lo script anycam_demo_nico_1.py --> passare i 6 file sul PC Lab\
 PC Lab: eseguire lo script anycam_demo_visualize.py
 ---
-## SAM2
-module load stack/2024-06 python/3.11 cuda/12.4 eth_proxy\
-source myenv/bin/activate
-
-### (senza --system-site-packages)
-0. git clone https://github.com/NicoloIacobone/sam2.git
-0. cd sam2
-0. module purge
-1. module load stack/2024-06 python/3.11 cuda/12.4
-2. python -m venv myenv
-3. source myenv/bin/activate
-4. pip install --upgrade pip wheel setuptools
-5. pip install torch==2.5.1 torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cu124
-6. pip install -e .
-7. pip install -e .[notebooks]
-8. cd checkpoints && ./download_ckpts.sh && cd ..
-9. pip install seaborn wandb
-10. ENJOY
----
 ## SpatialTrackerV2
 module load stack/2024-06 python/3.11 eth_proxy\
 source myenv/bin/activate\
@@ -82,18 +108,6 @@ python tapip3d_viz.py nome/file --> visualizzare risultato
 6. python -m pip install -r requirements.txt (controlla che nei requirement.txt ci sia pyceres==2.4)
 7. ENJOY
 ---
-# MapAnything
-0. module purge
-0. git clone https://github.com/NicoloIacobone/map-anything.git
-0. cd map-anything
-1. module load stack/2024-06 python/3.12 cuda/12.4
-2. python -m venv myenv
-3. source myenv/bin/activate
-4. pip install --upgrade pip wheel setuptools
-5. pip install torch==2.6.0 --index-url https://download.pytorch.org/whl/cu124
-6. pip install -e .
-7. pip install -e ".[all]"
-<!-- 8. pre-commit install -->
 
 # wai_processing
 0. module purge
@@ -150,112 +164,3 @@ srun python script.py --> esegue uno script in coda\
 sbatch job.sh --> invia un job in coda\
 scancel job_id --> cancella un job in coda\
 nano ~/.config/euler/jupyterhub/config_vs_code --> configurazione al lancio di code-server
-
-## Esecuzione con rerun (anycam) - NOT WORKING
-Terminale 1: rerun --serve-web --> prima riga dell'INFO dice a che indirizzo collegarsi dallo script, seconda riga a che indirizzo hosta\
-Terminale 2: ssh -L 9090:localhost:9090 -L 9876:localhost:9876 niacobone@euler.ethz.ch --> la prima porta (9090) la prendi dalla seconda riga dell'INFO, la seconda (9876) la prendi dalla prima riga dell'INFO\
-Terminale 3: srun ... ++rerun_mode=connect ++rerun_address=localhost:9876 --> la porta (9876) la prendi dalla prima riga dell'INFO
-
----
-## Passi per provare a installare il venv di SpaTrack2
-### Non funzionante
-1. module load stack/2024-06 python/3.11 cuda/12.4 eth_proxy
-2. python -m venv --system-site-packages myenv
-3. source myenv/bin/activate
-4. pip install --upgrade pip
-5. python -m pip install torch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1 --index-url https://download.pytorch.org/whl/cu124
-6. pip install -r requirements.txt
-7. ERROR: pip's dependency resolver does not currently take into account all the packages that are installed.
-
-### Seconda prova (senza system-site-packages) - LENTISSIMO - ~
-0. module purge
-1. module load stack/2024-06 python/3.11 cuda/12.4 eth_proxy code-server/4.89.1
-2. python -m venv myenv
-3. source myenv/bin/activate
-4. pip install --upgrade pip
-5. pip install -r requirements.txt
-6. ERROR: Cannot import the C++ backend pycolmap._core
-
-### Terza prova (senza system-site-packages) - LENTISSIMO - ~
-0. module purge
-1. module load stack/2024-06 python_cuda/3.11.6 code-server/4.89.1
-2. python -m venv myenv_cuda
-3. source myenv_cuda/bin/activate
-4. pip install --upgrade pip
-5. pip install -r requirements.txt
-6. ERROR: Cannot import the C++ backend pycolmap._core
-
-### Quarta prova (con system-site-packages) ~
-0. module purge
-1. module load stack/2024-06 python_cuda/3.11.6 code-server/4.89.1
-2. python -m venv --system-site-packages myenv_cuda_stack
-3. source myenv_cuda_stack/bin/activate
-4. pip install --upgrade pip
-5. pip install -r requirements.txt
-
-### Quinta prova (con system-site-packages) ~
-0. module purge
-1. module load stack/2024-06 python/3.11 cuda/12.4 eth_proxy
-2. python -m venv --system-site-packages myenv5
-3. source myenv5/bin/activate
-4. pip install --upgrade pip
-5. python -m pip install torch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1 --index-url https://download.pytorch.org/whl/cu124
-6. pip install -r requirements.txt
-
-### Sesta prova (senza system-site-packages) ~
-0. module purge
-1. module load stack/2024-06 python/3.11 cuda/12.4 eth_proxy
-2. python -m venv myenv6
-3. source myenv6/bin/activate
-4. pip install --upgrade pip
-5. python -m pip install torch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1 --index-url https://download.pytorch.org/whl/cu124
-6. pip install -r requirements.txt
-
-### Settima prova (con system-site-packages)
-0. module purge
-1. module load stack/2024-06 python/3.11
-2. python -m venv --system-site-packages myenv
-3. source myenv/bin/activate
-4. pip install --upgrade pip
-5. python -m pip install torch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1 --index-url https://download.pytorch.org/whl/cu124
-6. pip install -r requirements.txt
-
-### Ottava prova (senza system-site-packages)
-0. module purge
-1. module load stack/2024-06 python/3.11
-2. python -m venv myenv2
-3. source myenv2/bin/activate
-4. pip install --upgrade pip
-5. python -m pip install torch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1 --index-url https://download.pytorch.org/whl/cu124
-6. pip install -r requirements.txt
-7. ERROR: Cannot import the C++ backend pycolmap._core ... Make sure that you successfully install the package with $ python -m pip install pycolmap
-8. pip uninstall pycolmap
-9. pip cache purge
-10. pip install --no-cache-dir --force-reinstall --verbose pycolmap
-11. python -c "import pycolmap" --> error
-12. ERROR: pip's dependency resolver does not currently take into account all the packages that are installed ... requires numpy<2.3.0
-13. pip install "numpy<2.3.0"
-14. pip list | grep numpy --> check that it is listed a version of numpy < 2.3.0
-15. python -c "import pycolmap" --> no error
-16. ENJOY
-
-### Ottava prova (**senza** system-site-packages)
-0. module purge
-1. module load stack/2024-06 python/3.11
-2. python -m venv myenv
-3. source myenv/bin/activate
-4. pip install --upgrade pip
-5. python -m pip install torch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1 --index-url https://download.pytorch.org/whl/cu124
-6. python -m pip install -r requirements.txt
-7. python -m pip install pyceres==2.4
-7. ERROR: Cannot import the C++ backend pycolmap._core ... Make sure that you successfully install the package with $ python -m pip install pycolmap
-8. pip uninstall pycolmap
-9. pip cache purge
-10. pip install --no-cache-dir --force-reinstall --verbose pycolmap==0.6.1
-11. python -c "import pycolmap" --> error
-12. ERROR: pip's dependency resolver does not currently take into account all the packages that are installed ... requires numpy<2.3.0
-13. pip install "numpy<2.3.0"
-14. pip list | grep numpy --> check that it is listed a version of numpy < 2.3.0
-15. python -c "import pycolmap" --> no error
-16. ENJOY
----

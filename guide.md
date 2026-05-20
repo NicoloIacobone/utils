@@ -1,3 +1,24 @@
+# SAM3
+0. module purge
+0. git clone https://github.com/NicoloIacobone/sam3.git
+0. cd sam3
+1. module load stack/2024-06 python/3.12.8 cuda/12.8.0 eth_proxy
+2. python -m venv myenv
+3. source myenv/bin/activate
+4. pip install --upgrade pip wheel setuptools
+5. pip install torch==2.10.0 torchvision --index-url https://download.pytorch.org/whl/cu128
+6. pip install -e .
+7. pip install -e ".[notebooks]"
+8. pip install -e ".[train,dev]"
+9. pip install einops ninja && pip install flash-attn-3 --no-deps --index-url https://download.pytorch.org/whl/cu128
+10. srun --time=00:30:00 --ntasks=1 --cpus-per-task=1 --mem-per-cpu=8G --gpus=rtx_4090:1 --pty bash
+11. /cluster/scratch/niacobone/sam3
+12. module load stack/2024-06 python/3.12.8 cuda/12.8.0 eth_proxy
+13. source myenv/bin/activate
+14. pip install --no-build-isolation git+https://github.com/ronghanghu/cc_torch.git
+<!-- 10. hf auth login -->
+11. hf download facebook/sam3.1
+
 # VGGT-omega
 0. module purge
 0. git clone https://github.com/NicoloIacobone/vggt-omega.git
@@ -9,6 +30,8 @@
 5. pip install -r requirements.txt
 6. pip install -e .
 7. pip install -r requirements_demo.txt
+<!-- 10. hf auth login -->
+8. hf download facebook/VGGT-Omega
 
 # MapAnything
 0. module purge

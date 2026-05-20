@@ -8,6 +8,7 @@
 4. pip install --upgrade pip wheel setuptools
 5. pip install -r requirements.txt
 6. pip install -e .
+7. pip install -r requirements_demo.txt
 
 # MapAnything
 0. module purge

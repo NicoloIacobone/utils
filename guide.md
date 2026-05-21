@@ -1,3 +1,22 @@
+# Florence 2
+0. module purge
+0. git clone https://github.com/NicoloIacobone/Florence-2-Vision-Language-Model.git
+0. cd Florence-2-Vision-Language-Model
+1. module load stack/2024-06 python/3.11 cuda/12.4 eth_proxy
+2. python -m venv myenv
+3. source myenv/bin/activate
+4. chmod +x setup.sh
+5. ./setup.sh
+4. pip install --upgrade pip wheel setuptools
+5. pip install torch==2.5.1 torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cu124
+7. srun --time=00:30:00 --ntasks=1 --cpus-per-task=1 --mem-per-cpu=8G --gpus=rtx_4090:1 --pty bash
+8. cd /cluster/scratch/niacobone/Florence-2-Vision-Language-Model
+9. module load stack/2024-06 python/3.11 cuda/12.4 eth_proxy
+10. source myenv/bin/activate
+11. pip install psutil packaging ninja
+12. pip install flash_attn --no-build-isolation
+13. pip install timm einops transformers pillow requests matplotlib
+
 # SAM3
 0. module purge
 0. git clone https://github.com/NicoloIacobone/sam3.git
@@ -12,7 +31,7 @@
 8. pip install -e ".[train,dev]"
 9. pip install einops ninja && pip install flash-attn-3 --no-deps --index-url https://download.pytorch.org/whl/cu128
 10. srun --time=00:30:00 --ntasks=1 --cpus-per-task=1 --mem-per-cpu=8G --gpus=rtx_4090:1 --pty bash
-11. /cluster/scratch/niacobone/sam3
+11. cd /cluster/scratch/niacobone/sam3
 12. module load stack/2024-06 python/3.12.8 cuda/12.8.0 eth_proxy
 13. source myenv/bin/activate
 14. pip install --no-build-isolation git+https://github.com/ronghanghu/cc_torch.git

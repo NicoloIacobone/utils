@@ -1,3 +1,6 @@
+# ncdu (disk utility Euler cluster)
+1. module load stack/2025-06 gcc/12.2.0 ncdu/1.19
+
 # Florence 2
 0. module purge
 0. git clone https://github.com/NicoloIacobone/Florence-2-Vision-Language-Model.git
